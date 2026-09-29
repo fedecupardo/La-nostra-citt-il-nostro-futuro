@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="it" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Nostra Città - Portale Civico Milano</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        milano: {
+                            red: '#C8102E',
+                            darkRed: '#9B0B21',
+                            lightRed: '#FFF0F2',
+                            navy: '#1E293B',
+                            gold: '#D97706'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Leaflet CSS & JS for Interactive Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Custom CSS for map styling, animations and Google-like UI -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        .leaflet-container {
+            font-family: 'Inter', sans-serif !important;
+            z-index: 1;
+        }
+
+        /* Custom Pin styling */
+        .custom-pin-marker {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pin-wrapper {
+            position: relative;
+            width: 36px;
+            height: 36px;
+            border-radius: 50% 50% 50% 0;
+            background: #C8102E;
+            transform: rotate(-45deg);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            border: 2px solid white;
+        }
+
+        .pin-wrapper:hover {
+            transform: rotate(-45deg) scale(1.18);
+            z-index: 1000 !important;
+        }
+
+        .pin-icon {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 14px;
+        }
+
+        .pin-pulse {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: rgba(200, 16, 46, 0.4);
+            border-radius: 50%;
+            bottom: -6px;
+            left: 11px;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.8); opacity: 0.8; }
+            100% { transform: scale(2.4); opacity: 0; }
+        }
+
+        /* Google Maps Search Bar shadow & hover */
+        .g-search-shadow {
+            box-shadow: 0 3px 12px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.12);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col font-sans text-slate-800 bg-slate-50 antialiased selection:bg-red-100 selection:text-red-700">
+
+    <!-- HEADER CIVICO -->
+    <header class="bg-slate-900 text-white sticky top-0 z-50 border-b border-slate-800 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo Civico Milano -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('map-tab')">
+                    <div class="w-10 h-10 bg-milano-red rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-lg border border-red-400/30">
+                        <i class="fa-solid me-0.5 fa-city"></i>
+                    </div>
+                    <div>
+                        <div class="font-extrabold text-lg tracking-tight text-white flex items-center gap-2">
+                            <span>Insieme per Milano</span>
+                            <span class="text-xs font-semibold px-2 py-0.5 rounded bg-red-600/40 text-red-200 border border-red-500/30">Comitato Civico</span>
+                        </div>
+                        <div class="text-xs text-slate-400">La Nostra Città, Il Nostro Futuro</div>
+                    </div>
+                </div>
+
+                <!-- Navigazione Desktop -->
+                <nav class="hidden md:flex space-x-1">
+                    <button id="nav-map-tab" onclick="switchTab('map-tab')" class="px-3 py-2 rounded-md text-sm font-medium transition-colors text-white bg-slate-800 border border-slate-700/60 shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-red-400"></i> Mappa Interattiva
+                    </button>
+                    <button id="nav-list-tab" onclick="switchTab('list-tab')" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-slate-400"></i> Segnalazioni
+                    </button>
+                    <button id="nav-leaderboard-tab" onclick="switchTab('leaderboard-tab')" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-amber-400"></i> Priorità Cittadine
+                    </button>
+                    <button id="nav-new-tab" onclick="switchTab('new-tab')" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-circle-plus text-emerald-400"></i> Nuova Segnalazione
+                    </button>
+                    <button id="nav-mod-tab" onclick="switchTab('mod-tab')" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors hidden flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-indigo-400"></i> Moderazione
+                    </button>
+                    <button id="nav-admin-tab" onclick="switchTab('admin-tab')" class="px-3 py-2 rounded-md text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors hidden flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-purple-400"></i> Amministrazione
+                    </button>
+                </nav>
+
+                <!-- Selettore di Ruolo e Profilo -->
+                <div class="flex items-center space-x-3">
+                    <div class="bg-slate-800 rounded-lg p-1 border border-slate-700 flex items-center">
+                        <i class="fa-solid fa-user-gear text-slate-400 text-xs px-2"></i>
+                        <select id="role-selector" onchange="changeUserRole(this.value)" class="bg-slate-900 text-xs text-white rounded border border-slate-700 py-1 px-2 focus:outline-none focus:border-red-500 cursor-pointer font-medium">
+                            <option value="cittadino">Ruolo: Cittadino (Mario R.)</option>
+                            <option value="moderatore">Ruolo: Moderatore (Laura B.)</option>
+                            <option value="amministratore">Ruolo: Amministratore (Giuseppe V.)</option>
+                            <option value="ospite">Ruolo: Non Registrato (Ospite)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Mobile Strip -->
+        <div class="md:hidden flex overflow-x-auto bg-slate-950 px-2 py-2 border-t border-slate-800 gap-1 text-xs whitespace-nowrap">
+            <button onclick="switchTab('map-tab')" class="px-3 py-1.5 rounded-md text-slate-200 bg-slate-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-map-location-dot text-red-400"></i> Mappa
+            </button>
+            <button onclick="switchTab('list-tab')" class="px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-list-check"></i> Elenco
+            </button>
+            <button onclick="switchTab('leaderboard-tab')" class="px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-trophy text-amber-400"></i> Priorità
+            </button>
+            <button onclick="switchTab('new-tab')" class="px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-plus text-emerald-400"></i> Crea
+            </button>
+            <button id="mobile-nav-mod" onclick="switchTab('mod-tab')" class="hidden px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 items-center gap-1.5">
+                <i class="fa-solid fa-user-shield text-indigo-400"></i> Moderazione
+            </button>
+            <button id="mobile-nav-admin" onclick="switchTab('admin-tab')" class="hidden px-3 py-1.5 rounded-md text-slate-300 hover:bg-slate-800 items-center gap-1.5">
+                <i class="fa-solid fa-sliders text-purple-400"></i> Admin
+            </button>
+        </div>
+    </header>
+
+    <!-- Notifiche Toast -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- CONTENUTO PRINCIPALE -->
+    <main class="flex-1 relative flex flex-col overflow-hidden">
+
+        <!-- TAB 1: MAPPA GOOGLE MAPS STYLE -->
+        <div id="map-tab" class="tab-content flex-1 flex flex-col relative h-full">
+            
+            <!-- GOOGLE MAPS FLOATING SEARCH BAR OVERLAY -->
+            <div class="absolute top-4 left-4 right-4 md:left-6 md:right-auto z-[20] w-full max-w-md pointer-events-auto">
+                <div class="bg-white rounded-xl g-search-shadow border border-slate-200/90 overflow-visible relative transition-all duration-200">
+                    <div class="flex items-center px-3.5 py-2.5 gap-2">
+                        <i class="fa-solid fa-location-dot text-milano-red text-lg ml-1"></i>
+                        <input type="text" 
+                               id="map-street-search" 
+                               placeholder="Cerca via, piazza o corso a Milano (es. Via Dante, Corso Buenos Aires)..." 
+                               oninput="onStreetInputSearch(this.value)"
+                               onkeydown="handleStreetKeydown(event)"
+                               autocomplete="off"
+                               class="w-full text-sm font-medium text-slate-800 bg-transparent border-none focus:outline-none placeholder:text-slate-400">
+                        <button id="clear-search-btn" onclick="clearStreetSearch()" class="hidden text-slate-400 hover:text-slate-600 p-1">
+                            <i class="fa-solid fa-xmark text-base"></i>
+                        </button>
+                        <div class="h-5 w-[1px] bg-slate-200 mx-0.5"></div>
+                        <button onclick="triggerStreetGeocodeSearch()" class="bg-milano-red hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all active:scale-95">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span class="hidden sm:inline">Cerca</span>
+                        </button>
+                    </div>
+
+                    <!-- AUTOCOMPLETE MENU A TENDINA -->
+                    <div id="street-autocomplete-dropdown" class="hidden absolute left-0 right-0 top-full mt-2 bg-white rounded-xl g-search-shadow border border-slate-200 max-h-72 overflow-y-auto z-50 divide-y divide-slate-100">
+                        <!-- Popolato dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Chips di Filtro Rapido per Categoria sotto la barra -->
+                <div class="flex items-center gap-1.5 mt-2.5 overflow-x-auto pb-1 no-scrollbar text-xs font-medium">
+                    <button onclick="filterMapCategory('all')" class="map-cat-filter active bg-slate-900 text-white border border-slate-800 px-3 py-1 rounded-full shadow-sm hover:bg-slate-800 transition-all flex items-center gap-1 whitespace-nowrap">
+                        <i class="fa-solid fa-layer-group text-slate-300"></i> Tutte
+                    </button>
+                    <button onclick="filterMapCategory('Strade e Marciapiedi')" class="map-cat-filter bg-white/95 backdrop-blur-md text-slate-700 border border-slate-200 px-3 py-1 rounded-full shadow-sm hover:bg-slate-100 transition-all flex items-center gap-1 whitespace-nowrap">
+                        <i class="fa-solid fa-road text-amber-600"></i> Strade
+                    </button>
+                    <button onclick="filterMapCategory('Verde Pubblico')" class="map-cat-filter bg-white/95 backdrop-blur-md text-slate-700 border border-slate-200 px-3 py-1 rounded-full shadow-sm hover:bg-slate-100 transition-all flex items-center gap-1 whitespace-nowrap">
+                        <i class="fa-solid fa-tree text-emerald-600"></i> Verde
+                    </button>
+                    <button onclick="filterMapCategory('Illuminazione')" class="map-cat-filter bg-white/95 backdrop-blur-md text-slate-700 border border-slate-200 px-3 py-1 rounded-full shadow-sm hover:bg-slate-100 transition-all flex items-center gap-1 whitespace-nowrap">
+                        <i class="fa-solid fa-lightbulb text-amber-500"></i> Luce
+                    </button>
+                    <button onclick="filterMapCategory('Rifiuti e Pulizia')" class="map-cat-filter bg-white/95 backdrop-blur-md text-slate-700 border border-slate-200 px-3 py-1 rounded-full shadow-sm hover:bg-slate-100 transition-all flex items-center gap-1 whitespace-nowrap">
+                        <i class="fa-solid fa-trash-can text-blue-600"></i> Rifiuti
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTROLLI FLOATING MAPPA GOOGLE-STYLE (Right Side) -->
+            <div class="absolute bottom-6 right-4 z-[20] flex flex-col gap-2">
+                <!-- Bottone Reset Vista Milano -->
+                <button onclick="resetMapToMilan()" title="Ricentra su Milano" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-xl g-search-shadow flex items-center justify-center transition-all active:scale-95 border border-slate-200">
+                    <i class="fa-solid fa-crosshairs text-base text-milano-red"></i>
+                </button>
+                <!-- Switcher Layer Mappa -->
+                <div class="relative">
+                    <button onclick="toggleMapLayerMenu()" title="Cambia Stile Mappa" class="w-10 h-10 bg-white hover:bg-slate-50 text-slate-700 rounded-xl g-search-shadow flex items-center justify-center transition-all active:scale-95 border border-slate-200">
+                        <i class="fa-solid fa-layer-group text-base text-slate-700"></i>
+                    </button>
+                    <!-- Layer Menu Dropdown -->
+                    <div id="layer-menu-dropdown" class="hidden absolute bottom-0 right-12 bg-white rounded-xl g-search-shadow border border-slate-200 p-2 w-48 z-30 flex flex-col gap-1 text-xs">
+                        <div class="font-bold text-slate-500 px-2 py-1 text-[10px] uppercase tracking-wider">Tipo di Mappa</div>
+                        <button onclick="setMapTileLayer('stradale')" class="layer-option flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 text-slate-800 font-semibold bg-slate-100">
+                            <i class="fa-solid fa-map text-blue-600"></i> Stradale (Standard)
+                        </button>
+                        <button onclick="setMapTileLayer('satellite')" class="layer-option flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 text-slate-800 font-semibold">
+                            <i class="fa-solid fa-globe text-emerald-600"></i> Satellite HD (Esri)
+                        </button>
+                        <button onclick="setMapTileLayer('scuro')" class="layer-option flex items-center gap-2 p-2 rounded-lg hover:bg-slate-100 text-slate-800 font-semibold">
+                            <i class="fa-solid fa-moon text-indigo-600"></i> Scuro / Notturno
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LEAFLET MAP CANVAS CONTAINER -->
+            <div id="main-map" class="w-full h-full min-h-[500px] bg-slate-200"></div>
+
+            <!-- Legenda Mappa in Basso a Sinistra -->
+            <div class="absolute bottom-6 left-4 z-[20] hidden sm:block bg-white/90 backdrop-blur-md rounded-lg p-2.5 g-search-shadow border border-slate-200 text-xs">
+                <div class="font-bold text-slate-700 mb-1 flex items-center gap-1">
+                    <i class="fa-solid fa-info-circle text-milano-red"></i> Legenda Stati
+                </div>
+                <div class="flex items-center gap-3 text-[11px] text-slate-600">
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> In Attesa</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block"></span> In Lavorazione</span>
+                    <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block"></span> Risolta</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: ELENCO SEGNALAZIONI CON FILTRI E RICERCA -->
+        <div id="list-tab" class="tab-content hidden flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+            <div class="max-w-7xl mx-auto space-y-6">
+                <!-- Banner Titolo -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div>
+                        <h1 class="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-milano-red"></i> Segnalazioni Civiche
+                        </h1>
+                        <p class="text-sm text-slate-500 mt-1">Sfoglia, filtra e sostieni le proposte dei cittadini di Milano.</p>
+                    </div>
+                    <button onclick="switchTab('new-tab')" class="bg-milano-red hover:bg-red-700 text-white font-semibold px-4 py-2.5 rounded-xl text-sm flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95">
+                        <i class="fa-solid fa-plus-circle"></i> Invia Nuova Segnalazione
+                    </button>
+                </div>
+
+                <!-- Barra dei Filtri -->
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Cerca Parola Chiave / Via</label>
+                        <div class="relative">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-xs"></i>
+                            <input type="text" id="filter-search-text" oninput="renderReportsList()" placeholder="Es. buca, Via Dante..." class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Categoria</label>
+                        <select id="filter-category" onchange="renderReportsList()" class="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                            <option value="all">Tutte le Categorie</option>
+                            <option value="Strade e Marciapiedi">Strade e Marciapiedi</option>
+                            <option value="Verde Pubblico">Verde Pubblico</option>
+                            <option value="Illuminazione">Illuminazione</option>
+                            <option value="Rifiuti e Pulizia">Rifiuti e Pulizia</option>
+                            <option value="Segnaletica e Traffico">Segnaletica e Traffico</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Stato</label>
+                        <select id="filter-status" onchange="renderReportsList()" class="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                            <option value="all">Tutti gli Stati</option>
+                            <option value="In Attesa">In Attesa</option>
+                            <option value="In Lavorazione">In Lavorazione</option>
+                            <option value="Risolta">Risolta</option>
+                            <option value="Respinta">Respinta</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-500 mb-1">Ordinamento</label>
+                        <select id="filter-sort" onchange="renderReportsList()" class="w-full py-1.5 px-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                            <option value="date-desc">Più recenti</option>
+                            <option value="votes-desc">Più Sostenute (Sostegni)</option>
+                            <option value="ai-desc">Punteggio Affidabilità IA</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- GRIGLIA CARDS SEGNALAZIONI -->
+                <div id="reports-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Popolato via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: CLASSIFICA PRIORITÀ CITTADINE (Vista DB v_classifica_segnalazioni) -->
+        <div id="leaderboard-tab" class="tab-content hidden flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+            <div class="max-w-5xl mx-auto space-y-6">
+                <!-- Header Classifica -->
+                <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-milano-red p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
+                    <div class="relative z-10">
+                        <div class="inline-flex items-center gap-1.5 bg-amber-400/20 text-amber-300 border border-amber-400/30 px-3 py-1 rounded-full text-xs font-bold mb-3">
+                            <i class="fa-solid fa-crown"></i> Priorità Algoritmica Civica
+                        </div>
+                        <h1 class="text-2xl font-extrabold tracking-tight">Classifica Priorità Interventi (v_classifica_segnalazioni)</h1>
+                        <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+                            Calcolata in tempo reale combinando il numero di sostiene dei cittadini, l'indice di urgenza territoriale e il punteggio di affidabilità verificato dalla simulazione IA.
+                        </p>
+                    </div>
+                    <i class="fa-solid fa-ranking-star absolute -right-4 -bottom-6 text-white/5 text-9xl pointer-events-none"></i>
+                </div>
+
+                <!-- Tabella Classifica -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3 text-center">Posiz.</th>
+                                    <th class="px-4 py-3">Segnalazione & Via</th>
+                                    <th class="px-4 py-3">Categoria</th>
+                                    <th class="px-4 py-3 text-center">Voti</th>
+                                    <th class="px-4 py-3 text-center">Score IA</th>
+                                    <th class="px-4 py-3 text-center">Stato</th>
+                                    <th class="px-4 py-3 text-right">Azione</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-table-body" class="divide-y divide-slate-100">
+                                <!-- Popolato dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: NUOVA SEGNALAZIONE CON MAPPA INTERATTIVA E ANALISI IA -->
+        <div id="new-tab" class="tab-content hidden flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+            <div class="max-w-4xl mx-auto space-y-6">
+                
+                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="border-b border-slate-100 pb-4 mb-6">
+                        <h1 class="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-plus text-milano-red"></i> Nuova Segnalazione Civica
+                        </h1>
+                        <p class="text-xs text-slate-500 mt-1">Compila il modulo o cerca direttamente la via per posizionare il punto esatto sulla mappa.</p>
+                    </div>
+
+                    <form id="new-report-form" onsubmit="handleReportSubmit(event)" class="space-y-6">
+                        
+                        <!-- Titolo e Categoria -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Titolo Segnalazione *</label>
+                                <input type="text" id="form-title" required placeholder="Es. Buca profonda sul manto stradale" oninput="runAISimulationCheck()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Categoria *</label>
+                                <select id="form-category" required class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                                    <option value="">-- Seleziona Categoria --</option>
+                                    <option value="Strade e Marciapiedi">Strade e Marciapiedi</option>
+                                    <option value="Verde Pubblico">Verde Pubblico</option>
+                                    <option value="Illuminazione">Illuminazione</option>
+                                    <option value="Rifiuti e Pulizia">Rifiuti e Pulizia</option>
+                                    <option value="Segnaletica e Traffico">Segnaletica e Traffico</option>
+                                    <option value="Altro">Altro</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Descrizione -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Descrizione Dettagliata *</label>
+                            <textarea id="form-description" rows="3" required placeholder="Descrivi il problema in dettaglio indicando eventuali pericoli imminenti..." oninput="runAISimulationCheck()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-red-500"></textarea>
+                        </div>
+
+                        <!-- LOCALIZZAZIONE E MAPPA DEL FORM -->
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-map-pin text-milano-red"></i> Posizione sulla Mappa (Milano)
+                                </span>
+                                <span class="text-[11px] text-slate-500">Cerca la via o fai click sulla mappa</span>
+                            </div>
+
+                            <!-- Ricerca Via Modulo Form -->
+                            <div class="relative">
+                                <div class="flex items-center gap-2">
+                                    <input type="text" id="form-street-search" placeholder="Cerca via per centrare la mappa (es. Corso Buenos Aires)..." oninput="onFormStreetSearchInput(this.value)" autocomplete="off" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-red-500">
+                                    <button type="button" onclick="triggerFormStreetSearch()" class="bg-slate-800 hover:bg-slate-900 text-white px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap">
+                                        Trova Via
+                                    </button>
+                                </div>
+                                <!-- Dropdown autocomplete form -->
+                                <div id="form-street-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white rounded-lg g-search-shadow border border-slate-200 max-h-48 overflow-y-auto z-30"></div>
+                            </div>
+
+                            <!-- Container Mappa Picker Form -->
+                            <div class="h-60 w-full rounded-lg border border-slate-300 overflow-hidden relative">
+                                <div id="form-picker-map" class="w-full h-full bg-slate-200"></div>
+                            </div>
+
+                            <!-- Coordinate e Indirizzo Estratto -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div>
+                                    <label class="block text-[11px] text-slate-500">Via / Indirizzo Rilevato</label>
+                                    <input type="text" id="form-address" required readonly class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded font-medium text-slate-700">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500">Latitudine</label>
+                                    <input type="text" id="form-lat" required readonly class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded font-mono text-slate-600">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] text-slate-500">Longitudine</label>
+                                    <input type="text" id="form-lng" required readonly class="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded font-mono text-slate-600">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ALLEGATI FOTO / VIDEO -->
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Allegati Foto/Video (Obbligatorio per RF02)</label>
+                            <div class="border-2 border-dashed border-slate-300 hover:border-red-400 rounded-xl p-4 text-center bg-slate-50 transition-colors cursor-pointer" onclick="document.getElementById('form-file-input').click()">
+                                <i class="fa-solid fa-cloud-arrow-up text-slate-400 text-2xl mb-1"></i>
+                                <div class="text-xs font-semibold text-slate-700">Clicca per caricare o seleziona una foto di prova</div>
+                                <div class="text-[10px] text-slate-400 mt-0.5">JPG, PNG, MP4 fino a 10MB</div>
+                                <input type="file" id="form-file-input" accept="image/*,video/*" onchange="handleFileSelect(event)" class="hidden">
+                            </div>
+                            
+                            <!-- Anteprima File -->
+                            <div id="file-preview-container" class="hidden mt-3 p-3 bg-slate-100 rounded-lg flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <img id="file-preview-img" src="" class="w-12 h-12 object-cover rounded border border-slate-300">
+                                    <div>
+                                        <div id="file-preview-name" class="text-xs font-bold text-slate-800"></div>
+                                        <div id="file-preview-size" class="text-[10px] text-slate-500"></div>
+                                    </div>
+                                </div>
+                                <button type="button" onclick="removeSelectedFile()" class="text-red-500 hover:text-red-700 text-xs font-bold px-2 py-1">Rimuovi</button>
+                            </div>
+                        </div>
+
+                        <!-- BOX SIMULAZIONE ANALISI IA -->
+                        <div class="bg-indigo-950 text-indigo-100 p-4 rounded-xl border border-indigo-800 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold flex items-center gap-1.5 text-indigo-300">
+                                    <i class="fa-solid fa-robot"></i> Simulazione Assistente IA CivicGuard
+                                </span>
+                                <span id="ai-status-badge" class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-900 border border-indigo-700 font-semibold text-indigo-200">Pronto per Analisi</span>
+                            </div>
+                            <div id="ai-feedback-box" class="text-xs text-indigo-200 leading-relaxed">
+                                Compila il titolo e la descrizione per avviare il controllo in tempo reale della moderazione testo, suggerimento categoria ed estrazione metadati EXIF.
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] pt-1 border-t border-indigo-900/80">
+                                <span>Punteggio Affidabilità Stimato:</span>
+                                <span id="ai-trust-score-display" class="font-bold text-amber-400">85/100</span>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="flex justify-end gap-3 pt-2">
+                            <button type="button" onclick="switchTab('map-tab')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100">Annulla</button>
+                            <button type="submit" class="bg-milano-red hover:bg-red-700 text-white font-bold px-6 py-2.5 rounded-xl text-xs shadow-md transition-all active:scale-95 flex items-center gap-2">
+                                <i class="fa-solid fa-paper-plane"></i> Invia Segnalazione
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 5: PANNELLO MODERAZIONE (Disponibile per Moderatore e Admin) -->
+        <div id="mod-tab" class="tab-content hidden flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-extrabold flex items-center gap-2">
+                            <i class="fa-solid fa-user-shield text-indigo-400"></i> Pannello Gestione e Moderazione
+                        </h1>
+                        <p class="text-xs text-indigo-200 mt-1">Gestisci lo stato delle segnalazioni civiche ed aggiorna la cronologia delle lavorazioni (`storico_stato`).</p>
+                    </div>
+                </div>
+
+                <!-- Tabella Moderazione -->
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
+                                <tr>
+                                    <th class="px-4 py-3">ID & Data</th>
+                                    <th class="px-4 py-3">Titolo & Indirizzo</th>
+                                    <th class="px-4 py-3">Categoria</th>
+                                    <th class="px-4 py-3 text-center">Stato Attuale</th>
+                                    <th class="px-4 py-3 text-center">Azioni Moderatore</th>
+                                </tr>
+                            </thead>
+                            <tbody id="moderation-table-body" class="divide-y divide-slate-100">
+                                <!-- Popolato dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: PANNELLO AMMINISTRAZIONE UTENTI E RUOLI -->
+        <div id="admin-tab" class="tab-content hidden flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+            <div class="max-w-6xl mx-auto space-y-6">
+                <div class="bg-purple-900 text-white p-6 rounded-2xl shadow-sm flex items-center justify-between">
+                    <div>
+                        <h1 class="text-2xl font-extrabold flex items-center gap-2">
+                            <i class="fa-solid fa-sliders text-purple-300"></i> Pannello Amministrazione Sistema
+                        </h1>
+                        <p class="text-xs text-purple-200 mt-1">Gestisci utenti, ruoli, permessi e simulatore dati di Milano.</p>
+                    </div>
+                    <button onclick="resetSystemData()" class="bg-purple-800 hover:bg-purple-700 text-white text-xs px-3 py-2 rounded-lg font-bold border border-purple-600 transition-all">
+                        <i class="fa-solid fa-rotate-left"></i> Ripristino Dati Demo
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Tabella Utenti -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-users text-purple-600"></i> Utenti Registrati e Permessi
+                        </h2>
+                        <div class="divide-y divide-slate-100 text-xs" id="admin-users-list">
+                            <!-- Popolato via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Statistiche di Sistema -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                        <h2 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-purple-600"></i> Metriche Civiche Milano
+                        </h2>
+                        <div class="grid grid-cols-2 gap-3" id="admin-stats-grid">
+                            <!-- Popolato via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODALE DETTAGLIO SEGNALAZIONE -->
+    <div id="report-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[999] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200 flex flex-col">
+            <div id="modal-content" class="p-6 space-y-4">
+                <!-- Popolato via JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DATABASE INTERNO DI VIE DI MILANO PER ZERO-LATENCY SEARCH E FALLBACK SUCESS
+        const MILANO_STREETS_DATABASE = [
+            { name: "Piazza del Duomo", lat: 45.4642, lng: 9.1900, cap: "20121", zona: "Centro Storico" },
+            { name: "Via Dante", lat: 45.4665, lng: 9.1848, cap: "20121", zona: "Centro Storico" },
+            { name: "Corso Buenos Aires", lat: 45.4808, lng: 9.2118, cap: "20124", zona: "Porta Venezia / Loreto" },
+            { name: "Via Tortona", lat: 45.4522, lng: 9.1678, cap: "20144", zona: "Navigli / Solari" },
+            { name: "Piazza Gae Aulenti", lat: 45.4836, lng: 9.1898, cap: "20154", zona: "Porta Nuova" },
+            { name: "Viale Monza", lat: 45.5034, lng: 9.2215, cap: "20127", zona: "Nolo / Turro" },
+            { name: "Via Brera", lat: 45.4716, lng: 9.1878, cap: "20121", zona: "Brera" },
+            { name: "Corso Como", lat: 45.4813, lng: 9.1873, cap: "20154", zona: "Garibaldi" },
+            { name: "Via San Siro", lat: 45.4674, lng: 9.1465, cap: "20149", zona: "Fiera / San Siro" },
+            { name: "Galleria Vittorio Emanuele II", lat: 45.4656, lng: 9.1900, cap: "20121", zona: "Centro Storico" },
+            { name: "Corso Vittorio Emanuele II", lat: 45.4650, lng: 9.1945, cap: "20121", zona: "Centro" },
+            { name: "Via Torino", lat: 45.4614, lng: 9.1852, cap: "20123", zona: "Duomo / Ticinese" },
+            { name: "Via Montenapoleone", lat: 45.4682, lng: 9.1943, cap: "20121", zona: "Quadrilatero Moda" },
+            { name: "Corso Venezia", lat: 45.4697, lng: 9.2006, cap: "20121", zona: "Porta Venezia" },
+            { name: "Corso Magenta", lat: 45.4658, lng: 9.1764, cap: "20123", zona: "Sant'Ambrogio" },
+            { name: "Piazza Castello", lat: 45.4705, lng: 9.1793, cap: "20121", zona: "Castello Sforzesco" },
+            { name: "Via Solferino", lat: 45.4741, lng: 9.1868, cap: "20121", zona: "Brera / Moscova" },
+            { name: "Viale Bligny", lat: 45.4503, lng: 9.1925, cap: "20136", zona: "Bocconi" },
+            { name: "Corso di Porta Ticinese", lat: 45.4542, lng: 9.1802, cap: "20123", zona: "Ticinese / Colonne" },
+            { name: "Alzaia Naviglio Grande", lat: 45.4518, lng: 9.1728, cap: "20144", zona: "Navigli" },
+            { name: "Via Paolo Sarpi", lat: 45.4810, lng: 9.1772, cap: "20154", zona: "Chinatown" },
+            { name: "Piazza San Babila", lat: 45.4661, lng: 9.1973, cap: "20122", zona: "Centro" },
+            { name: "Viale Abruzzi", lat: 45.4779, lng: 9.2185, cap: "20131", zona: "Città Studi" },
+            { name: "Corso Sempione", lat: 45.4789, lng: 9.1685, cap: "20145", zona: "Arco della Pace" },
+            { name: "Via Giuseppe Ripamonti", lat: 45.4412, lng: 9.2005, cap: "20141", zona: "Ripamonti" },
+            { name: "Via Savona", lat: 45.4508, lng: 9.1645, cap: "20144", zona: "Solari / Tortona" },
+            { name: "Via Padova", lat: 45.4952, lng: 9.2274, cap: "20127", zona: "Loreto / Padova" },
+            { name: "Viale Romagna", lat: 45.4725, lng: 9.2241, cap: "20133", zona: "Città Studi" },
+            { name: "Piazza XXV Aprile", lat: 45.4800, lng: 9.1860, cap: "20154", zona: "Garibaldi" },
+            { name: "Via Alessandro Manzoni", lat: 45.4680, lng: 9.1905, cap: "20121", zona: "Centro" },
+            { name: "Piazzale Loreto", lat: 45.4855, lng: 9.2163, cap: "20131", zona: "Loreto" },
+            { name: "Via Farini", lat: 45.4880, lng: 9.1820, cap: "20159", zona: "Isola" },
+            { name: "Via Bovisa", lat: 45.5020, lng: 9.1620, cap: "20158", zona: "Bovisa Politecnico" },
+            { name: "Via George Washington", lat: 45.4600, lng: 9.1510, cap: "20146", zona: "De Angeli" },
+            { name: "Corso Vercelli", lat: 45.4660, lng: 9.1580, cap: "20144", zona: "Pagano" },
+            { name: "Via Lorenteggio", lat: 45.4450, lng: 9.1350, cap: "20147", zona: "Giambellino" },
+            { name: "Piazza Cordusio", lat: 45.4655, lng: 9.1863, cap: "20123", zona: "Centro" }
+        ];
+
+        // DATI UTENTI REGISTRATI
+        const USERS_DB = {
+            "cittadino": { id: "USR-01", name: "Mario Rossi", role: "cittadino", email: "mario.rossi@email.it" },
+            "moderatore": { id: "USR-02", name: "Laura Bianchi", role: "moderatore", email: "l.bianchi@comune.milano.it" },
+            "amministratore": { id: "USR-03", name: "Giuseppe Verdi", role: "amministratore", email: "g.verdi@comune.milano.it" },
+            "ospite": { id: "USR-00", name: "Utente Non Registrato", role: "ospite", email: "anonimo@cittadino.it" }
+        };
+
+        let currentUser = USERS_DB["cittadino"];
+
+        // SEGNALAZIONI INIZIALI PRE-CARICATE CON COORDINATE REALI SU MILANO
+        const INITIAL_REPORTS = [
+            {
+                id: "SEG-2026-001",
+                title: "Buca profonda su attraversamento pedonale",
+                description: "Presenza di una profonda buca sull'asfalto proprio sulle strisce pedonali all'incrocio. Pericolo per pedoni e biciclette.",
+                category: "Strade e Mar
