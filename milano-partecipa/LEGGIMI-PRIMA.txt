@@ -1,0 +1,41 @@
+MILANO PARTECIPA — SORGENTI COMPLETI
+
+Questa cartella contiene i file sorgenti della versione pubblicata della web app.
+Il progetto usa React, TypeScript, Vinext e Cloudflare Workers (non Flask).
+
+FILE PRINCIPALI
+- app/page.tsx: interfaccia, proposte, profilo e pannello comitato.
+- app/globals.css: stile e adattamento a smartphone/tablet.
+- app/layout.tsx: struttura HTML e metadati.
+- app/api/civic/route.ts: API, registrazione, allegati, voti, commenti e moderazione.
+- app/api/my-comments/route.ts: elenco dei propri commenti.
+- app/chatgpt-auth.ts: autenticazione della piattaforma.
+- lib/civic.ts: accesso ad archivi, dati illustrativi e controlli.
+- db/schema.ts: definizione del database.
+- drizzle/: migrazioni SQL e metadati.
+- components/ui/: componenti grafici e accessibili.
+- public/favicon.svg: icona.
+- tests/security.mjs: test locali di autorizzazione e integrità.
+- package.json e pnpm-lock.yaml: dipendenze e comandi.
+- README.md: funzionalità, configurazione e limiti.
+
+COME APRIRLO
+1. Estrai lo ZIP.
+2. Apri la cartella milano-partecipa in Visual Studio Code.
+3. Installa Node.js >= 22.13.0 e le dipendenze del progetto.
+   Il progetto include un lockfile pnpm: pnpm install --frozen-lockfile.
+4. Il comando di sviluppo del progetto è pnpm dev.
+
+ATTENZIONE ALL'AMBIENTE
+L'archivio contiene i sorgenti originali della versione ospitata. Non è un sito
+statico da aprire facendo doppio clic su un file HTML. Database D1, archivio R2
+e autenticazione ChatGPT richiedono configurazione nell'ambiente di esecuzione.
+Sul computer locale non sono presenti l'identità inoltrata dalla piattaforma,
+i dati di produzione o i documenti caricati. Il backend non inventa un login
+locale. Prima di usare account e scritture occorre configurare questi servizi
+e applicare le migrazioni. Leggere README.md e le configurazioni incluse.
+
+Non sono inclusi node_modules, cache, credenziali, dati personali o database
+in uso. Le dipendenze si reinstallano dai file di configurazione.
+Le schede illustrative sono incluse nel codice.
+SPID e i moduli di intelligenza artificiale non sono integrati.
