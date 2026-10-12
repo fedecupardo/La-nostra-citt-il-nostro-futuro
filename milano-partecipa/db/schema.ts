@@ -6,3 +6,8 @@ export const votes=sqliteTable('votes',{user:text('user').notNull().references((
 export const comments=sqliteTable('comments',{id:text('id').primaryKey(),user:text('user').notNull().references(()=>users.id),proposal:text('proposal').notNull().references(()=>proposals.id),body:text('body').notNull(),created:text('created').notNull()});
 export const files=sqliteTable('files',{id:text('id').primaryKey(),owner:text('owner').notNull(),proposal:text('proposal'),scope:text('scope').notNull(),name:text('name').notNull(),mime:text('mime').notNull(),size:integer('size').notNull(),created:text('created').notNull()});
 export const events=sqliteTable('events',{id:text('id').primaryKey(),actor:text('actor').notNull(),target:text('target').notNull(),action:text('action').notNull(),note:text('note').notNull(),created:text('created').notNull()});
+
+// Independent accounts. Public identity is approved separately by the committee.
+export const credentials=sqliteTable('credentials',{id:text('id').primaryKey(),email:text('email').notNull().unique(),passwordHash:text('password_hash').notNull(),salt:text('salt').notNull(),recoveryHash:text('recovery_hash').notNull(),birth:text('birth').notNull(),created:text('created').notNull()});
+export const sessions=sqliteTable('sessions',{tokenHash:text('token_hash').primaryKey(),userId:text('user_id').notNull().references(()=>credentials.id,{onDelete:'cascade'}),expires:integer('expires').notNull(),created:integer('created').notNull()});
+export const authLimits=sqliteTable('auth_limits',{key:text('key').primaryKey(),count:integer('count').notNull(),expires:integer('expires').notNull()});

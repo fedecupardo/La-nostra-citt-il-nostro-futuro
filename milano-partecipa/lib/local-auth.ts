@@ -1,0 +1,19 @@
+import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
+import {db} from './civic';
+export const COOKIE='__Host-milano_session';
+export const SESSION_SECONDS=60*60*24*7;
+export const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
+export const randomToken=()=>randomBytes(32).toString('hex');
+export function passwordHash(password:string,salt:string){return scryptSync(password,salt,32,{N:32768,r:8,p:3,maxmem:64*1024*1024}).toString('hex');}
+export function passwordValid(password:unknown){return typeof password==='string'&&password.length>=12&&password.length<=128;}
+export function compare(password:string,salt:string,expected:string){const actual=Buffer.from(passwordHash(password,salt),'hex');const target=Buffer.from(expected,'hex');return actual.length===target.length&&timingSafeEqual(actual,target);}
+export function email(value:unknown){if(typeof value!=='string')throw Error('Inserisci un indirizzo email valido.');const result=value.trim().toLowerCase();if(result.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(result))throw Error('Inserisci un indirizzo email valido.');return result;}
+export function sessionToken(req:Request){return req.headers.get('cookie')?.split(';').map(x=>x.trim()).find(x=>x.startsWith(COOKIE+'='))?.slice(COOKIE.length+1)||'';}
+export function cookie(token:string,clear=false){return `${COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${clear?0:SESSION_SECONDS}`;}
+export function checkOrigin(req:Request){const origin=req.headers.get('origin');if(!origin||origin!==new URL(req.url).origin)throw Error('Richiesta non consentita. Ricarica la pagina.');}
+export async function getLocalUser(req:Request){const token=sessionToken(req);if(!/^[a-f0-9]{64}$/.test(token))return null;const row=await db().prepare(`SELECT c.id,c.email,c.birth,u.name,u.surname,u.verification FROM sessions s JOIN credentials c ON c.id=s.user_id LEFT JOIN users u ON u.id=c.id WHERE s.token_hash=? AND s.expires>?`).bind(hash(token),Date.now()).first<any>();if(!row||row.verification==='deleted')return null;return {userId:row.id,email:row.email,birth:row.birth,fullName:row.name?row.name+' '+row.surname:null};}
+// Only an already-authenticated legacy session can link an existing profile.
+// Matching an email alone NEVER grants ownership or committee privileges.
+export async function migrationIdentity(req:Request){const id=req.headers.get('oai-authenticated-user-id');const mail=req.headers.get('oai-authenticated-user-email');if(!id||!mail)return null;return await db().prepare(`SELECT u.id,u.email,u.birth,u.name FROM users u WHERE u.id=? AND lower(u.email)=? AND u.verification!='deleted' AND NOT EXISTS (SELECT 1 FROM credentials c WHERE c.id=u.id)`).bind(id,mail.toLowerCase()).first<any>();}
+export async function rateLimit(req:Request,address:string){const ip=req.headers.get('cf-connecting-ip')||'unknown';const now=Date.now();const window=15*60*1000;const start=Math.floor(now/window);const checks=[{key:hash('ip:'+ip+':'+start),limit:50},{key:hash('email:'+address+':'+start),limit:10}];const results=await db().batch(checks.map(c=>db().prepare('INSERT INTO auth_limits (key,count,expires) VALUES (?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count').bind(c.key,(start+1)*window)));if(results.some((r:any,i)=>Number(r.results[0].count)>checks[i].limit))throw Error('Troppi tentativi. Attendi 15 minuti e riprova.');await db().prepare('DELETE FROM auth_limits WHERE expires<?').bind(now).run();}
+export function newSession(id:string,token:string){return db().prepare('INSERT INTO sessions (token_hash,user_id,expires,created) VALUES (?,?,?,?)').bind(hash(token),id,Date.now()+SESSION_SECONDS*1000,Date.now());}

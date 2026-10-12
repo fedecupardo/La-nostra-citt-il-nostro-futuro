@@ -8,6 +8,13 @@
       "when": 1791267853384,
       "tag": "0000_curly_molecule_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1791794831694,
+      "tag": "0001_clammy_lockheed",
+      "breakpoints": true
     }
   ]
 }
