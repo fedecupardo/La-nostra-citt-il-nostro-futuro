@@ -1,5 +1,5 @@
 import {scryptSync,timingSafeEqual,randomBytes,createHash} from 'node:crypto';
-import {db} from './civic';
+import {db,mysqlDateTime} from './civic';
 export const COOKIE='__Host-milano_session';
 export const SESSION_SECONDS=60*60*24*7;
 export const hash=(value:string)=>createHash('sha256').update(value).digest('hex');
@@ -16,4 +16,4 @@ export async function getLocalUser(req:Request){const token=sessionToken(req);if
 // Matching an email alone NEVER grants ownership or committee privileges.
 export async function migrationIdentity(req:Request){const id=req.headers.get('oai-authenticated-user-id');const mail=req.headers.get('oai-authenticated-user-email');if(!id||!mail)return null;return await db().prepare(`SELECT u.id,u.email,u.birth,u.name FROM users u WHERE u.id=? AND lower(u.email)=? AND u.verification!='deleted' AND NOT EXISTS (SELECT 1 FROM credentials c WHERE c.id=u.id)`).bind(id,mail.toLowerCase()).first<any>();}
 export async function rateLimit(req:Request,address:string){const ip=req.headers.get('x-forwarded-for')||req.headers.get('x-real-ip')||'unknown';const now=Date.now();const window=15*60*1000;const start=Math.floor(now/window);const checks=[{key:hash('ip:'+ip+':'+start),limit:50},{key:hash('email:'+address+':'+start),limit:10}];for(const check of checks){await db().prepare('INSERT INTO auth_limits (`key`,`count`,expires) VALUES (?,1,?) ON DUPLICATE KEY UPDATE `count`=`count`+1').bind(check.key,(start+1)*window).run();const row=await db().prepare('SELECT `count` FROM auth_limits WHERE `key`=?').bind(check.key).first<any>();if(Number(row?.count)>check.limit)throw Error('Troppi tentativi. Attendi 15 minuti e riprova.');}await db().prepare('DELETE FROM auth_limits WHERE expires<?').bind(now).run();}
-export function newSession(id:string,token:string){return db().prepare('INSERT INTO sessions (token_hash,user_id,expires,created) VALUES (?,?,?,?)').bind(hash(token),id,Date.now()+SESSION_SECONDS*1000,Date.now());}
+export function newSession(id:string,token:string){return db().prepare('INSERT INTO sessions (token_hash,user_id,expires,created) VALUES (?,?,?,?)').bind(hash(token),id,Date.now()+SESSION_SECONDS*1000,mysqlDateTime());}

@@ -48,19 +48,26 @@ function statement(sql: string, params: QueryValue[]): BoundQuery {
   return { sql, params };
 }
 
+function mysqlValue(value: QueryValue): QueryValue {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(value)) {
+    return value.replace("T", " ").replace("Z", "");
+  }
+  return value;
+}
+
 function prepared(query: BoundQuery): PreparedQuery {
   return {
     query,
     async first<T = Record<string, unknown>>(): Promise<T | null> {
-      const [rows] = await getPool().execute<RowDataPacket[]>(query.sql, query.params);
+      const [rows] = await getPool().execute<RowDataPacket[]>(query.sql, query.params.map(mysqlValue));
       return (rows[0] as T | undefined) ?? null;
     },
     async all<T = Record<string, unknown>>() {
-      const [rows] = await getPool().execute<RowDataPacket[]>(query.sql, query.params);
+      const [rows] = await getPool().execute<RowDataPacket[]>(query.sql, query.params.map(mysqlValue));
       return { results: rows as T[] };
     },
     async run() {
-      const [result] = await getPool().execute<ResultSetHeader>(query.sql, query.params);
+      const [result] = await getPool().execute<ResultSetHeader>(query.sql, query.params.map(mysqlValue));
       return { success: true, meta: result };
     },
   };
@@ -83,7 +90,7 @@ export function db() {
         for (const query of queries) {
           const [result] = await connection.execute<ResultSetHeader>(
             query.query.sql,
-            query.query.params,
+            query.query.params.map(mysqlValue),
           );
           results.push({ results: [], success: true, meta: result });
         }

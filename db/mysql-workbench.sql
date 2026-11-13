@@ -8,6 +8,12 @@ CREATE DATABASE IF NOT EXISTS `la_nostra_citta`
 
 USE `la_nostra_citta`;
 
+CREATE TABLE IF NOT EXISTS `schema_migrations` (
+  `version` VARCHAR(100) NOT NULL,
+  `applied_at` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`version`)
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS `users` (
   `id` VARCHAR(36) NOT NULL,
   `name` VARCHAR(60) NOT NULL,
@@ -47,6 +53,18 @@ CREATE TABLE IF NOT EXISTS `auth_limits` (
   `count` INT UNSIGNED NOT NULL,
   `expires` BIGINT UNSIGNED NOT NULL,
   PRIMARY KEY (`key`)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS `sessions` (
+  `token_hash` CHAR(64) NOT NULL,
+  `user_id` VARCHAR(36) NOT NULL,
+  `expires` BIGINT UNSIGNED NOT NULL,
+  `created` DATETIME(3) NOT NULL,
+  PRIMARY KEY (`token_hash`),
+  KEY `idx_sessions_user` (`user_id`),
+  CONSTRAINT `fk_sessions_user`
+    FOREIGN KEY (`user_id`) REFERENCES `credentials` (`id`)
+    ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS `proposals` (
