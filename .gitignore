@@ -44,3 +44,5 @@ next-env.d.ts
 /.codex/
 /outputs/
 /work/
+# Leftover local cache from the former nested project layout.
+/milano-partecipa/
