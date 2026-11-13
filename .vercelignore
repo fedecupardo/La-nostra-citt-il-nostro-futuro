@@ -3,7 +3,6 @@
 .vercel
 .wrangler
 .sites-runtime
-.openai
 node_modules
 milano-partecipa
 *.log
