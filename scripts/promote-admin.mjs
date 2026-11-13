@@ -1,4 +1,16 @@
+import { readFileSync } from "node:fs";
 import mysql from "mysql2/promise";
+
+try {
+  for (const line of readFileSync(".env.local", "utf8").split(/\r?\n/)) {
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (match && !process.env[match[1]]) {
+      process.env[match[1]] = match[2].replace(/^"(.*)"$/, "$1");
+    }
+  }
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+}
 
 const email = process.argv[2]?.trim().toLowerCase();
 if (!email || !/^\S+@[^\s@]+\.[^\s@]+$/.test(email)) {
