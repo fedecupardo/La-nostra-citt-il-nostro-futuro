@@ -1,0 +1,12 @@
+.git
+.next
+.vercel
+.wrangler
+.sites-runtime
+.openai
+node_modules
+milano-partecipa
+*.log
+.env*
+AGENTS.md
+CLAUDE.md
