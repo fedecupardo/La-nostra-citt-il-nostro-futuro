@@ -28,6 +28,29 @@ Stack: React/Vinext, TypeScript, Cloudflare Workers, D1/SQLite e R2. Gli schemi 
 
 Comandi: `node node_modules/typescript/bin/tsc --noEmit`, `node tests/security.mjs`. Il test usa un database/file storage isolati e identità sintetiche, mai incluse nel prodotto. Le migrazioni sono applicate dalla piattaforma in pubblicazione.
 
+### Database locale
+
+In sviluppo il database è un D1 locale esposto dal binding `DB` e gli allegati sono salvati nel bucket R2 locale `BUCKET`; non vanno configurati come URL o password in `.env.local`. Dopo una build, per inizializzare lo schema nel percorso usato da `pnpm start`:
+
+```bash
+node node_modules/wrangler/bin/wrangler.js d1 execute site-creator-d1 --local --persist-to .wrangler/state --file drizzle/0000_curly_molecule_man.sql --config dist/server/wrangler.json
+node node_modules/wrangler/bin/wrangler.js d1 execute site-creator-d1 --local --persist-to .wrangler/state --file drizzle/0001_clammy_lockheed.sql --config dist/server/wrangler.json
+```
+
+Le migrazioni locali non modificano il database remoto: per quello è necessario usare esplicitamente `--remote`.
+
+### Aiven MySQL
+
+`.env.local` contiene i parametri Aiven ricevuti, ma l'applicazione attuale non li usa ancora: gli endpoint importano il binding D1 `DB` e sono eseguiti come Worker Cloudflare. Per usare davvero Aiven MySQL su un VPS Node.js occorre completare la migrazione dell'adapter database da D1/SQLite a MySQL e sostituire il binding R2 con un client compatibile S3 per gli allegati, oppure mantenere R2 tramite un client HTTP/S3. Inserire la password solo in `AIVEN_MYSQL_PASSWORD` nel file locale o nel gestore dei segreti del VPS; non committarla.
+
+Per creare il database in Aiven con MySQL Workbench, aprire [`db/mysql-workbench.sql`](./db/mysql-workbench.sql), collegarsi al servizio Aiven usando host, porta, utente e SSL indicati nella console Aiven, quindi eseguire tutto lo script. Lo script crea `la_nostra_citta`, le tabelle e le sei proposte dimostrative; è ripetibile e non contiene password né comandi `DROP`.
+
+La distribuzione Vercel usa l'adapter MySQL in [`lib/mysql.ts`](./lib/mysql.ts) e Vercel Blob per gli allegati in [`lib/civic.ts`](./lib/civic.ts). I comandi standard sono `pnpm dev`, `pnpm build` e `pnpm start`; i comandi Cloudflare precedenti restano disponibili con suffisso `:cloudflare`. In Vercel configurare `AIVEN_MYSQL_HOST`, `AIVEN_MYSQL_PORT`, `AIVEN_MYSQL_DATABASE`, `AIVEN_MYSQL_USER`, `AIVEN_MYSQL_PASSWORD`, `AIVEN_MYSQL_SSL=true` e `BLOB_READ_WRITE_TOKEN`. Creare uno store Blob dal progetto Vercel e aggiungere il token generato alle variabili d'ambiente del progetto. Se una variabile manca, l'app restituisce un errore esplicito invece di usare un database locale.
+
+Vercel Blob è configurato come privato: gli allegati passano sempre dall'endpoint autenticato dell'applicazione e non sono pubblici. Il database relazionale resta MySQL Aiven; Vercel ospita l'app e lo storage degli allegati.
+
+La password Aiven non va mai committata. Se è stata già condivisa o inserita in un luogo non sicuro, revocarla e generarne una nuova dalla console Aiven.
+
 WebMCP espone un filtro di ricerca (nessuna mutazione). Verifica nel browser non disponibile nell'ambiente di creazione; validato tramite compilazione, controllo tipi e test API locali.
 
 ## Autenticazione autonoma

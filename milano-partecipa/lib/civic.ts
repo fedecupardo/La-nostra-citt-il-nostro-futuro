@@ -1,6 +1,26 @@
-import { env } from 'cloudflare:workers';
-export function db():D1Database { return (env as unknown as {DB:D1Database}).DB; }
-export function bucket():R2Bucket { return (env as unknown as {BUCKET:R2Bucket}).BUCKET; }
+import { del, get, put } from '@vercel/blob';
+import { db } from './mysql';
+export { db } from './mysql';
+
+export function bucket() {
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    throw new Error('Missing Vercel Blob configuration: BLOB_READ_WRITE_TOKEN');
+  }
+  return {
+    async get(key: string) {
+      const result = await get(key, { access: 'private' });
+      return result ? { body: result.stream } : null;
+    },
+    put(key: string, body: Uint8Array, options: { httpMetadata?: { contentType?: string } }) {
+      return put(key, Buffer.from(body), {
+        access: 'private',
+        addRandomSuffix: false,
+        contentType: options.httpMetadata?.contentType,
+      });
+    },
+    delete(key: string) { return del(key); },
+  };
+}
 export const categories=['Mobilità','Ambiente','Spazi pubblici','Sicurezza','Cultura e giovani'];
 export const statuses=['Ricevuta','In revisione','Pubblicata','Presa in carico','Inviata al Comune','Respinta'];
 export const samples=[
@@ -10,6 +30,6 @@ export const samples=[
 {id:'esempio-4',title:'Una biblioteca di quartiere aperta anche la sera',description:'Estendere gli orari degli spazi studio permetterebbe a studenti e lavoratori di utilizzare la biblioteca anche dopo il lavoro. Proponiamo una sperimentazione settimanale. Esempio illustrativo.',category:'Cultura e giovani',district:'Municipio 3',kind:'Idea',status:'Pubblicata'},
 {id:'esempio-5',title:'Marciapiedi accessibili per tutti a Porta Romana',description:'Un percorso senza barriere, con scivoli e attraversamenti accessibili, per facilitare gli spostamenti di persone con disabilità e famiglie con passeggini. Esempio illustrativo.',category:'Spazi pubblici',district:'Municipio 4',kind:'Richiesta',status:'Pubblicata'},
 {id:'esempio-6',title:'Un giardino condiviso per il quartiere NoLo',description:'Trasformare uno spazio di quartiere in un piccolo giardino condiviso, con orti didattici e attività aperte ai residenti. Esempio illustrativo per mostrare il percorso di una proposta.',category:'Ambiente',district:'Municipio 2',kind:'Idea',status:'Inviata al Comune'}];
-export async function seed(){ const d=db();await d.batch(samples.map(p=>d.prepare('INSERT OR IGNORE INTO proposals (id,author,title,description,category,district,kind,status,created,sample) VALUES (?,?,?,?,?,?,?,?,?,1)').bind(p.id,null,p.title,p.description,p.category,p.district,p.kind,p.status,'2026-10-01T09:00:00Z')));}
+export async function seed(){ const d=db();await d.batch(samples.map(p=>d.prepare('INSERT IGNORE INTO proposals (id,author,title,description,category,district,kind,status,created,sample) VALUES (?,?,?,?,?,?,?,?,?,1)').bind(p.id,null,p.title,p.description,p.category,p.district,p.kind,p.status,'2026-10-01 09:00:00')));}
 export function event(actor:string,target:string,action:string,note=''){return db().prepare('INSERT INTO events (id,actor,target,action,note,created) VALUES (?,?,?,?,?,?)').bind(crypto.randomUUID(),actor,target,action,note,new Date().toISOString());}
 export function adult(b:string,now=new Date()){if(!/^\d{4}-\d{2}-\d{2}$/.test(b))return false;const d=new Date(b+'T12:00:00Z');if(!Number.isFinite(d.getTime())||d.toISOString().slice(0,10)!==b)return false;let age=now.getUTCFullYear()-d.getUTCFullYear();if(now.getUTCMonth()<d.getUTCMonth()||(now.getUTCMonth()===d.getUTCMonth()&&now.getUTCDate()<d.getUTCDate()))age--;return age>=18&&age<=120;}
