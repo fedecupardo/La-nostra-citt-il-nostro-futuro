@@ -1,7 +1,7 @@
 MILANO PARTECIPA — SORGENTI COMPLETI
 
 Questa cartella contiene i file sorgenti della versione pubblicata della web app.
-Il progetto usa React, TypeScript, Vinext e Cloudflare Workers (non Flask).
+Il progetto usa React, TypeScript, Vinext e Cloudflare Workers.
 
 FILE PRINCIPALI
 - app/page.tsx: interfaccia, proposte, profilo e pannello comitato.
