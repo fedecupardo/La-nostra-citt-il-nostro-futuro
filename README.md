@@ -57,6 +57,8 @@ I ruoli applicativi sono `cittadino`, `moderatore`, `admin` e `comitato` (quest'
 
 La migrazione MySQL incrementale in [`db/mysql-migrations/0002_sessions_and_staff.sql`](./db/mysql-migrations/0002_sessions_and_staff.sql) crea la tabella delle sessioni e il registro delle migrazioni. Per promuovere il primo amministratore dopo che l'utente ha completato la registrazione, con le variabili Aiven già presenti nell'ambiente, usare `pnpm db:promote-admin -- email@example.com`. Il comando modifica solo un profilo esistente e non accetta dati di autenticazione.
 
+Per creare due account di test completi direttamente in Aiven, usare `pnpm db:create-users -- admin@example.com "password-admin-12" cittadino@example.com "password-cittadino-12"`. Il primo viene creato come `admin`, il secondo come `cittadino`; entrambi sono verificati. Le password sono solo argomenti locali del comando e non vengono salvate in chiaro.
+
 WebMCP espone un filtro di ricerca (nessuna mutazione). Verifica nel browser non disponibile nell'ambiente di creazione; validato tramite compilazione, controllo tipi e test API locali.
 
 ## Autenticazione autonoma
