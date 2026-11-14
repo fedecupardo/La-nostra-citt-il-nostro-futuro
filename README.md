@@ -53,7 +53,7 @@ La password Aiven non va mai committata. Se è stata già condivisa o inserita i
 
 ### Ruoli amministrativi e migrazioni MySQL
 
-I ruoli applicativi sono `cittadino`, `moderatore`, `admin` e `comitato` (quest'ultimo resta compatibile con il gestore storico). Moderatori possono revisionare proposte e commenti; amministratori possono inoltre verificare identità, consultare il registro e assegnare o rimuovere ruoli. Ogni controllo viene ripetuto sul server.
+I ruoli applicativi sono `cittadino`, `moderatore`, `admin` e `comitato` (quest'ultimo resta compatibile con il gestore storico). Gli account staff vedono nella navigazione le sezioni **Moderazione** e, per admin/comitato, **Amministrazione**. Moderatori possono revisionare proposte e commenti; amministratori possono inoltre verificare identità, consultare il registro, gestire tutti gli utenti e assegnare o rimuovere ruoli. Nella scheda di ogni proposta l'admin può modificare anche tema, municipio e tipo. Ogni controllo viene ripetuto sul server.
 
 La migrazione MySQL incrementale in [`db/mysql-migrations/0002_sessions_and_staff.sql`](./db/mysql-migrations/0002_sessions_and_staff.sql) crea la tabella delle sessioni e il registro delle migrazioni. Per promuovere il primo amministratore dopo che l'utente ha completato la registrazione, con le variabili Aiven già presenti nell'ambiente, usare `pnpm db:promote-admin -- email@example.com`. Il comando modifica solo un profilo esistente e non accetta dati di autenticazione.
 
