@@ -42,6 +42,8 @@ Le segnalazioni e i commenti vengono controllati server-side tramite OpenRouter 
 
 Le immagini allegate alle segnalazioni vengono inviate allo stesso modello multimodale e controllate per pubblicabilità e pertinenza rispetto a titolo e descrizione. I PDF e i video seguono i controlli di formato e dimensione già esistenti, ma non vengono classificati come immagini.
 
+Per limitare abuso e costi del controllo AI, ogni account può inviare al massimo **3 segnalazioni ogni ora**. Commenti e modifiche ai contenuti hanno un limite separato di **10 ogni 15 minuti**. I contatori sono persistiti in MySQL Aiven e valgono anche se l'utente cambia dispositivo; i tentativi vengono conteggiati prima della chiamata a OpenRouter.
+
 Vercel Blob è configurato come privato: gli allegati passano sempre dall'endpoint autenticato dell'applicazione e non sono pubblici. Il database relazionale resta MySQL Aiven; Vercel ospita l'app e lo storage degli allegati.
 
 La password Aiven non va mai committata. Se è stata già condivisa o inserita in un luogo non sicuro, revocarla e generarne una nuova dalla console Aiven.
