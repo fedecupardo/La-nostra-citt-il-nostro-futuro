@@ -40,6 +40,8 @@ La distribuzione Vercel usa MySQL Aiven e Vercel Blob. In Vercel configurare `AI
 
 Le segnalazioni e i commenti vengono controllati server-side tramite OpenRouter prima del salvataggio. Configurare `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-2.5-flash`) e, facoltativamente, `OPENROUTER_SITE_URL`. Se OpenRouter non è configurato o non risponde, il contenuto viene rifiutato: non esiste un fallback che pubblichi testo non controllato.
 
+Le immagini allegate alle segnalazioni vengono inviate allo stesso modello multimodale e controllate per pubblicabilità e pertinenza rispetto a titolo e descrizione. I PDF e i video seguono i controlli di formato e dimensione già esistenti, ma non vengono classificati come immagini.
+
 Vercel Blob è configurato come privato: gli allegati passano sempre dall'endpoint autenticato dell'applicazione e non sono pubblici. Il database relazionale resta MySQL Aiven; Vercel ospita l'app e lo storage degli allegati.
 
 La password Aiven non va mai committata. Se è stata già condivisa o inserita in un luogo non sicuro, revocarla e generarne una nuova dalla console Aiven.
