@@ -26,16 +26,16 @@ function required(name: string): string {
 
 function getPool(): Pool {
   if (!pool) {
+    if (process.env.AIVEN_MYSQL_SSL !== "true") {
+      throw new Error("AIVEN_MYSQL_SSL must be true for the production database.");
+    }
     pool = mysql.createPool({
       host: required("AIVEN_MYSQL_HOST"),
       port: Number(process.env.AIVEN_MYSQL_PORT || 3306),
       database: required("AIVEN_MYSQL_DATABASE"),
       user: required("AIVEN_MYSQL_USER"),
       password: required("AIVEN_MYSQL_PASSWORD"),
-      ssl:
-        process.env.AIVEN_MYSQL_SSL === "true"
-          ? { rejectUnauthorized: process.env.AIVEN_MYSQL_SSL_VERIFY !== "false" }
-          : undefined,
+      ssl: { rejectUnauthorized: process.env.AIVEN_MYSQL_SSL_VERIFY !== "false" },
       waitForConnections: true,
       connectionLimit: 10,
       namedPlaceholders: false,

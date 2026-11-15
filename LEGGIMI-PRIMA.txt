@@ -1,7 +1,7 @@
 MILANO PARTECIPA — SORGENTI COMPLETI
 
 Questa cartella contiene i file sorgenti della versione pubblicata della web app.
-Il progetto usa React, TypeScript, Vinext e Cloudflare Workers.
+Il progetto usa Next.js, React, TypeScript, MySQL Aiven e Vercel Blob.
 
 FILE PRINCIPALI
 - app/page.tsx: interfaccia, proposte, profilo e pannello comitato.
@@ -11,8 +11,8 @@ FILE PRINCIPALI
 - app/api/my-comments/route.ts: elenco dei propri commenti.
 - app/chatgpt-auth.ts: autenticazione della piattaforma.
 - lib/civic.ts: accesso ad archivi, dati illustrativi e controlli.
-- db/schema.ts: definizione del database.
-- drizzle/: migrazioni SQL e metadati.
+- db/mysql-workbench.sql: schema iniziale MySQL per Aiven.
+- db/mysql-migrations/: migrazioni incrementali MySQL.
 - components/ui/: componenti grafici e accessibili.
 - public/favicon.svg: icona.
 - tests/security.mjs: test locali di autorizzazione e integrità.
@@ -27,13 +27,11 @@ COME APRIRLO
 4. Il comando di sviluppo del progetto è pnpm dev.
 
 ATTENZIONE ALL'AMBIENTE
-L'archivio contiene i sorgenti originali della versione ospitata. Non è un sito
-statico da aprire facendo doppio clic su un file HTML. Database D1, archivio R2
-e autenticazione ChatGPT richiedono configurazione nell'ambiente di esecuzione.
-Sul computer locale non sono presenti l'identità inoltrata dalla piattaforma,
-i dati di produzione o i documenti caricati. Il backend non inventa un login
-locale. Prima di usare account e scritture occorre configurare questi servizi
-e applicare le migrazioni. Leggere README.md e le configurazioni incluse.
+L'archivio contiene i sorgenti della versione ospitata. Non è un sito statico
+da aprire facendo doppio clic su un file HTML. Le API usano esclusivamente il
+database MySQL Aiven e Vercel Blob: configura le variabili AIVEN_MYSQL_* e
+BLOB_READ_WRITE_TOKEN nell'ambiente di produzione prima di eseguire scritture.
+Non esiste un database locale di fallback.
 
 Non sono inclusi node_modules, cache, credenziali, dati personali o database
 in uso. Le dipendenze si reinstallano dai file di configurazione.
