@@ -38,7 +38,7 @@ La distribuzione Vercel usa MySQL Aiven e Vercel Blob. In Vercel configurare `AI
 
 ### Moderazione automatica
 
-Le segnalazioni e i commenti vengono controllati server-side tramite OpenRouter prima del salvataggio. Configurare `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-2.5-flash`) e, facoltativamente, `OPENROUTER_SITE_URL`. Se OpenRouter non è configurato o non risponde, il contenuto viene rifiutato: non esiste un fallback che pubblichi testo non controllato.
+Le segnalazioni e i commenti vengono controllati server-side tramite OpenRouter prima del salvataggio. Configurare `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `openrouter/free`) e, facoltativamente, `OPENROUTER_SITE_URL`. Il router gratuito seleziona un modello gratuito compatibile con testo e immagini; se OpenRouter non è configurato o non risponde, il contenuto viene rifiutato: non esiste un fallback che pubblichi testo non controllato.
 
 Le immagini allegate alle segnalazioni vengono inviate allo stesso modello multimodale e controllate per pubblicabilità e pertinenza rispetto a titolo e descrizione. I PDF e i video seguono i controlli di formato e dimensione già esistenti, ma non vengono classificati come immagini.
 

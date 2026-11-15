@@ -12,7 +12,7 @@ type ImageModerationResult = {
   reason: string;
 };
 
-const model = () => process.env.OPENROUTER_MODEL || "google/gemini-2.5-flash";
+const model = () => process.env.OPENROUTER_MODEL || "openrouter/free";
 
 function required(name: string): string {
   const value = process.env[name];
