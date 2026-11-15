@@ -35,7 +35,12 @@ function getPool(): Pool {
       database: required("AIVEN_MYSQL_DATABASE"),
       user: required("AIVEN_MYSQL_USER"),
       password: required("AIVEN_MYSQL_PASSWORD"),
-      ssl: { rejectUnauthorized: process.env.AIVEN_MYSQL_SSL_VERIFY !== "false" },
+      ssl: {
+        rejectUnauthorized: process.env.AIVEN_MYSQL_SSL_VERIFY === "true",
+        ...(process.env.AIVEN_MYSQL_CA_CERT
+          ? { ca: process.env.AIVEN_MYSQL_CA_CERT.replace(/\\n/g, "\n") }
+          : {}),
+      },
       waitForConnections: true,
       connectionLimit: 10,
       namedPlaceholders: false,
