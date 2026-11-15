@@ -36,6 +36,10 @@ Per creare il database in Aiven con MySQL Workbench, aprire [`db/mysql-workbench
 
 La distribuzione Vercel usa MySQL Aiven e Vercel Blob. In Vercel configurare `AIVEN_MYSQL_HOST`, `AIVEN_MYSQL_PORT`, `AIVEN_MYSQL_DATABASE`, `AIVEN_MYSQL_USER`, `AIVEN_MYSQL_PASSWORD`, `AIVEN_MYSQL_SSL=true` e `BLOB_READ_WRITE_TOKEN`. Per Aiven, `AIVEN_MYSQL_SSL_VERIFY` può restare `false` (il traffico resta cifrato); per verificare la catena TLS impostare `AIVEN_MYSQL_SSL_VERIFY=true` e fornire `AIVEN_MYSQL_CA_CERT` con il certificato CA Aiven, usando `\n` per gli a capo.
 
+### Moderazione automatica
+
+Le segnalazioni e i commenti vengono controllati server-side tramite OpenRouter prima del salvataggio. Configurare `OPENROUTER_API_KEY`, `OPENROUTER_MODEL` (default `google/gemini-2.5-flash`) e, facoltativamente, `OPENROUTER_SITE_URL`. Se OpenRouter non è configurato o non risponde, il contenuto viene rifiutato: non esiste un fallback che pubblichi testo non controllato.
+
 Vercel Blob è configurato come privato: gli allegati passano sempre dall'endpoint autenticato dell'applicazione e non sono pubblici. Il database relazionale resta MySQL Aiven; Vercel ospita l'app e lo storage degli allegati.
 
 La password Aiven non va mai committata. Se è stata già condivisa o inserita in un luogo non sicuro, revocarla e generarne una nuova dalla console Aiven.
